@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
+from random import randrange
 
 app=FastAPI()
 
@@ -11,6 +12,12 @@ class Post(BaseModel):#Schema
     published: bool = True 
     rating: Optional[int]=None 
 
+my_posts=[{"title":"title of the post 1","content":"content of post 1","id":1},{"title":"favourite food","content":" I like Pizza","id":2}]
+
+def find_post(id):
+    for p in my_posts:
+        if p["id"]==id:
+            return p
 
 @app.get("/")#GET REQUEST
 def root():
@@ -18,11 +25,17 @@ def root():
 
 @app.get("/posts")#GET REQUEST
 def get_posts():
-    return {"data":"This is yours posts"}
+    return {"data":my_posts}
     
 
 @app.post("/posts")#POST REQUEST
 def create_posts(post:Post):
-    print(post)
-    print(post.dict)
-    return {"data":post}
+    post_dict=post.dict()
+    post_dict['id']=randrange(0,100000)
+    my_posts.append(post_dict)
+    return {"data":post_dict}
+
+@app.get("/posts/{id}")#{id} hocche path parameter
+def get_post(id:int):
+    post=find_post(id)
+    return{"post_details":post}
