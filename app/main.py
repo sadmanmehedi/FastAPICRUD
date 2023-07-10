@@ -13,7 +13,7 @@ class Post(BaseModel):#Schema
     title: str 
     content: str
     published: bool = True 
-
+#Ami ei ekta jaigai video theke ektu different korlam j ami ekhane while loop add korinai and timer korinai for the failed database connection if needed i can do it later
 try:
         conn=psycopg2.connect(host='localhost',database='fastapi',user='postgres',password='12345',cursor_factory=RealDictCursor)
         cursor=conn.cursor()
