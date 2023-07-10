@@ -12,12 +12,23 @@ class Post(BaseModel):#Schema
     published: bool = True 
     rating: Optional[int]=None 
 
+class UpdatePost(BaseModel):
+     title: str 
+     content: str
+     published: bool = True 
+     rating: Optional[int]=None 
+
 my_posts=[{"title":"title of the post 1","content":"content of post 1","id":1},{"title":"favourite food","content":" I like Pizza","id":2}]
 
 def find_post(id):
     for p in my_posts:
         if p["id"]==id:
             return p
+
+def find_index_post(id):
+    for i,p in enumerate(my_posts):
+        if p['id']==id:
+            return i
 
 @app.get("/")#GET REQUEST
 def root():
@@ -47,3 +58,26 @@ def get_post(id:int,response:Response):
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with id {id} was not found")
     return{"post_details":post}
+
+#Delete Posts
+@app.delete("/posts/{id}",status_code=
+            status.HTTP_204_NO_CONTENT)
+def delete_post(id:int):
+    #deleting posts
+    #find the index in the array that has the specific id and delete it
+    index=find_index_post(id)
+    if index==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with {id} doesnot exist")
+    my_posts.pop(index)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+#UPDATE
+@app.put("/posts/{id}")
+def update_post(id:int,post:Post):
+    index=find_index_post(id)
+    if index==None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"post with {id} doesnot exist")
+    post_dict=post.dict()
+    post_dict['id']=id
+    my_posts[index]=post_dict
+    return{'message':'update post'}
