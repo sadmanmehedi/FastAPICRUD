@@ -60,16 +60,14 @@ def root():
 def get_posts():
     cursor.execute("""SELECT * FROM posts """)
     posts = cursor.fetchall()
-    print(posts)
     return {"data": posts}
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)  # POST REQUEST
 def create_posts(post: Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0, 100000)
-    my_posts.append(post_dict)
-    return {"data": post_dict}
+    cursor.execute("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING *""",(post.title,post.content,post.published))
+    new_post=cursor.fetchone()
+    return {"data": new_post}
 
 
 @app.get("/posts/latest")
