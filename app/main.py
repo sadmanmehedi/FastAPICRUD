@@ -8,20 +8,11 @@ from random import randrange
 from sqlalchemy.orm import Session
 import time  # eita ami apadoto use kortesina as ami loop use kortesina
 from . import models
-from .database import engine, SessionLocal
+from .database import engine,get_db
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 class Post(BaseModel):  # Schema
     title: str
@@ -104,7 +95,8 @@ def get_post(id: int, response: Response):
 
 @app.get("/sqlalchemy")
 def test_posts(db: Session = Depends(get_db)):
-    return {"status": "success"}
+    posts=db.query(models.Post).all()
+    return {"data": posts}
 
 # Delete Posts
 
