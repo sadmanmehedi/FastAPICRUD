@@ -1,14 +1,26 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from fastapi.params import Body
 from pydantic import BaseModel
 from typing import Optional
 from random import randrange
+from sqlalchemy.orm import Session
 import time  # eita ami apadoto use kortesina as ami loop use kortesina
+from . import models
+from .database import engine, SessionLocal
 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class Post(BaseModel):  # Schema
@@ -65,8 +77,9 @@ def get_posts():
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)  # POST REQUEST
 def create_posts(post: Post):
-    cursor.execute("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING *""",(post.title,post.content,post.published))
-    new_post=cursor.fetchone()
+    cursor.execute("""INSERT INTO posts(title,content,published) VALUES (%s,%s,%s) RETURNING *""",
+                   (post.title, post.content, post.published))
+    new_post = cursor.fetchone()
     conn.commit()
     return {"data": new_post}
 
@@ -79,20 +92,27 @@ def get_latest_post():
 
 @app.get("/posts/{id}")  # {id} hocche path parameter
 def get_post(id: int, response: Response):
-    cursor.execute("""SELECT * from posts where id=%s""",(str(id),))
-    post=cursor.fetchone()
+    cursor.execute("""SELECT * from posts where id=%s""", (str(id),))
+    post = cursor.fetchone()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id {id} was not found")
     return {"post_details": post}
+
+# Just for testing SQLALCHEMY
+
+
+@app.get("/sqlalchemy")
+def test_posts(db: Session = Depends(get_db)):
+    return {"status": "success"}
 
 # Delete Posts
 
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    cursor.execute("""Delete from posts where id=%s returning *""",(str(id),))
-    deleted_post=cursor.fetchone()
+    cursor.execute("""Delete from posts where id=%s returning *""", (str(id),))
+    deleted_post = cursor.fetchone()
     # deleting posts
     # find the index in the array that has the specific id and delete it
     conn.commit()
@@ -107,11 +127,12 @@ def delete_post(id: int):
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    cursor.execute("""Update posts SET title=%s,content=%s,published=%s where id=%s RETURNING*""",(post.title,post.content,post.published,str(id)))
-    updated_post=cursor.fetchone()
+    cursor.execute("""Update posts SET title=%s,content=%s,published=%s where id=%s RETURNING*""",
+                   (post.title, post.content, post.published, str(id)))
+    updated_post = cursor.fetchone()
     conn.commit()
     if updated_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id} doesnot exist")
-    
+
     return {'message': updated_post}
