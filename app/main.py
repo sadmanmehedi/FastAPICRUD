@@ -79,7 +79,7 @@ def get_latest_post():
 
 @app.get("/posts/{id}")  # {id} hocche path parameter
 def get_post(id: int, response: Response):
-    cursor.execute("""SELECT * from posts where id=%s""",(str(id)))
+    cursor.execute("""SELECT * from posts where id=%s""",(str(id),))
     post=cursor.fetchone()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -91,13 +91,15 @@ def get_post(id: int, response: Response):
 
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
+    cursor.execute("""Delete from posts where id=%s returning *""",(str(id),))
+    deleted_post=cursor.fetchone()
     # deleting posts
     # find the index in the array that has the specific id and delete it
-    index = find_index_post(id)
-    if index == None:
+    conn.commit()
+    if deleted_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id} doesnot exist")
-    my_posts.pop(index)
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 # UPDATE
@@ -105,11 +107,11 @@ def delete_post(id: int):
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    index = find_index_post(id)
-    if index == None:
+    cursor.execute("""Update posts SET title=%s,content=%s,published=%s where id=%s RETURNING*""",(post.title,post.content,post.published,str(id)))
+    updated_post=cursor.fetchone()
+    conn.commit()
+    if updated_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id} doesnot exist")
-    post_dict = post.dict()
-    post_dict['id'] = id
-    my_posts[index] = post_dict
-    return {'message': 'update post'}
+    
+    return {'message': updated_post}
